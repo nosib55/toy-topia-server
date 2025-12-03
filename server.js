@@ -15,8 +15,9 @@ app.use(express.json());
 const client = new MongoClient(process.env.MONGO_URI);
 
 let toysCollection;
+let purchasesCollection;
 
-// Connect to MongoDB FIRST → then start server
+// CONNECT TO MONGO & RUN SERVER
 async function run() {
   try {
     await client.connect();
@@ -24,21 +25,25 @@ async function run() {
 
     const database = client.db("toyTopiaDB");
     toysCollection = database.collection("toys");
-    const purchasesCollection = database.collection("purchases");
+    purchasesCollection = database.collection("purchases");
 
-    // --- ROUTES BELOW ---
+    // -----------------------------
+    // ROUTES START
+    // -----------------------------
 
     app.get("/", (req, res) => {
-      res.send("Toy Topia Backend is Running");
+      res.send("ToyTopia Backend is Running 🚀");
     });
 
+    // =====================================
     // 📌 GET ALL TOYS
+    // =====================================
     app.get("/toys", async (req, res) => {
       const toys = await toysCollection.find().toArray();
       res.send(toys);
     });
 
-    // 📌 GET SINGLE TOY DETAILS
+    // 📌 GET SINGLE TOY BY ID
     app.get("/toys/:id", async (req, res) => {
       const id = req.params.id;
       const toy = await toysCollection.findOne({ _id: new ObjectId(id) });
@@ -52,7 +57,7 @@ async function run() {
       res.send(result);
     });
 
-    // 📌 UPDATE TOY (quantity update, etc.)
+    // 📌 UPDATE TOY (quantity update)
     app.put("/toys/:id", async (req, res) => {
       const id = req.params.id;
       const updatedToy = req.body;
@@ -72,9 +77,38 @@ async function run() {
       res.send(result);
     });
 
-    // START SERVER AFTER DB CONNECTED
+    // ==========================================
+    // PURCHASES APIS
+    // ==========================================
+
+    // 📌 ADD PURCHASE
+    app.post("/purchases", async (req, res) => {
+      const purchase = req.body; // toyName, pictureURL, toyPrice, quantity, email, date
+      const result = await purchasesCollection.insertOne(purchase);
+      res.send(result);
+    });
+
+    // 📌 GET PURCHASES BY USER EMAIL
+    app.get("/purchases", async (req, res) => {
+      const email = req.query.email;
+      const purchases = await purchasesCollection.find({ email }).toArray();
+      res.send(purchases);
+    });
+
+    // 📌 DELETE PURCHASE
+    app.delete("/purchases/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await purchasesCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+    // -----------------------------
+    // START SERVER
+    // -----------------------------
     app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
+      console.log(`Server running on port ${port}`);
     });
 
   } catch (error) {
